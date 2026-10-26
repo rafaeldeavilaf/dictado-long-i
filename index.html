@@ -200,6 +200,7 @@
   <section id="game" class="screen">
     <div class="top">
       <button class="pbtn small" id="btnHome" style="--c:#64748b">&#9664; HOME</button>
+      <button class="pbtn small" id="btnMusic2" style="--c:#0ea5e9"></button>
     </div>
     <div id="pbar"></div>
     <div class="mode-tag" id="modeTag"></div>
@@ -432,7 +433,7 @@
   }
   function speak(word,slow){
     speakId++;
-    duck(2400);
+    duck(1800);
     try{player.pause()}catch(e){}
     if(voiceMode==="phone"&&playPhone(word,slow))return;
     if(!playRec(word,slow))playPhone(word,slow);
@@ -464,7 +465,7 @@
     [523,659,784,1047].forEach(function(f,i){beep(f,0.14,"square",i*0.11)});
   }
 
-  // ---------- MUSICA DE FONDO (solo en el menu principal, volumen muy bajo) ----------
+  // ---------- MUSICA DE FONDO (en todas las pantallas, volumen muy bajo) ----------
   var MUSIC_LEVEL=0.07,STEP=0.3;
   var MELODY=[523.25,659.25,783.99,659.25,523.25,659.25,783.99,659.25,
               440,523.25,659.25,523.25,440,523.25,659.25,523.25,
@@ -500,7 +501,7 @@
     }
   }
   function musicStart(){
-    if(!musicOn||!onHome||musicTimer)return;
+    if(!musicOn||musicTimer)return;
     var c=ensureCtx();if(!c)return;
     try{
       musicGain=c.createGain();
@@ -538,20 +539,18 @@
       try{var n=actx.currentTime;g.gain.setValueAtTime(0.0001,n);g.gain.linearRampToValueAtTime(MUSIC_LEVEL,n+0.6)}catch(e){}
     },ms);
   }
-  function musicSync(isHome){
-    onHome=isHome;
-    if(isHome){if(unlocked)musicStart()}else musicStop();
+  function musicSync(){
+    if(unlocked)musicStart();
   }
   // el navegador exige un toque del usuario antes de permitir sonido
   document.addEventListener("pointerdown",function(ev){
     if(unlocked)return;
     unlocked=true;
-    var t=ev.target&&ev.target.closest?ev.target.closest("#btnPractice,#btnDictation"):null;
-    if(!t&&onHome)musicStart();
+    musicStart();
   });
   document.addEventListener("visibilitychange",function(){
     if(document.hidden)musicStop();
-    else if(unlocked&&onHome)musicStart();
+    else if(unlocked)musicStart();
   });
 
   function confetti(){
@@ -625,15 +624,20 @@
     voiceLabel();
     speak("time",false);
   };
-  function musicLabel(){$("btnMusic").textContent=musicOn?"MUSIC: ON":"MUSIC: OFF"}
+  function musicLabel(){
+    var t=musicOn?"MUSIC: ON":"MUSIC: OFF";
+    $("btnMusic").textContent=t;$("btnMusic2").textContent=t;
+  }
   musicLabel();
-  $("btnMusic").onclick=function(){
+  function toggleMusic(){
     musicOn=!musicOn;
     try{localStorage.setItem("longi_music",musicOn?"on":"off")}catch(e){}
     musicLabel();
     unlocked=true;
     if(musicOn)musicStart();else musicStop();
-  };
+  }
+  $("btnMusic").onclick=toggleMusic;
+  $("btnMusic2").onclick=toggleMusic;
   $("btnPractice").onclick=function(){start("practice")};
   $("btnDictation").onclick=function(){start("dictation")};
   $("btnHome").onclick=function(){stopSpeech();show("home")};
