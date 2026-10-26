@@ -49,6 +49,8 @@
   }
   .sub{font-size:11px;line-height:1.6;text-align:center;margin:10px 0;color:var(--ink)}
   .center{display:flex;justify-content:center;margin:10px 0}
+  .hint{font-size:9px;color:#fff;text-shadow:2px 2px 0 var(--ink);animation:blinkt 1s steps(2) infinite;display:none}
+  @keyframes blinkt{50%{opacity:.25}}
   .bob{animation:bob 1s steps(2) infinite}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 
@@ -178,6 +180,7 @@
     <h1 class="title">LONG I<br>WORDS</h1>
     <div class="center bob" id="homeMascot"></div>
     <p class="sub">LISTEN AND SPELL!</p>
+    <p class="sub hint" id="musicHint">&#9835; TAP ANYWHERE FOR MUSIC &#9835;</p>
     <button class="pbtn blue" id="btnPractice">PRACTICE</button>
     <button class="pbtn orange" id="btnDictation">DICTATION TEST</button>
     <p class="sub">TAP A WORD TO HEAR IT</p>
@@ -193,7 +196,7 @@
     <div class="panel parent">
       <b>Para padres.</b> El niño toca LISTEN para escuchar la palabra y la arma tocando las letras en orden. En <b>Practice</b> la palabra se ve como modelo. En <b>Dictation test</b> no se ve, igual que en la prueba del martes 27 de octubre. Suban el volumen del teléfono. Si la voz no suena natural, toquen el botón <b>VOICE</b> para cambiarla.
     </div>
-    <div class="foot">Created by Rafael De Avila<br>v1.6 &middot; 2026-10-26 13:01</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
   </section>
 
   <!-- GAME -->
@@ -216,7 +219,7 @@
     <div class="slots" id="slots"></div>
     <div class="tiles" id="tiles"></div>
     <button class="pbtn orange" id="btnNext" style="display:none">NEXT &#9654;</button>
-    <div class="foot">Created by Rafael De Avila<br>v1.6 &middot; 2026-10-26 13:01</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
   </section>
 
   <!-- END -->
@@ -228,7 +231,7 @@
     <p class="sub" id="endNote"></p>
     <button class="pbtn orange" id="btnAgain">TRY AGAIN</button>
     <button class="pbtn blue" id="btnEndHome">HOME</button>
-    <div class="foot">Created by Rafael De Avila<br>v1.6 &middot; 2026-10-26 13:01</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
   </section>
 
 </div>
@@ -501,8 +504,9 @@
     }
   }
   function musicStart(){
-    if(!musicOn||musicTimer)return;
+    if(!musicOn)return;
     var c=ensureCtx();if(!c)return;
+    if(musicTimer)return;
     try{
       musicGain=c.createGain();
       musicGain.gain.setValueAtTime(0.0001,c.currentTime);
@@ -543,11 +547,17 @@
     if(unlocked)musicStart();
   }
   // el navegador exige un toque del usuario antes de permitir sonido
-  document.addEventListener("pointerdown",function(ev){
-    if(unlocked)return;
-    unlocked=true;
-    musicStart();
+  // En pantallas tactiles el permiso de audio se concede al SOLTAR el dedo (pointerup/touchend/click),
+  // por eso se intenta en todos esos eventos; ensureCtx() reanuda el audio si estaba suspendido.
+  function kick(){unlocked=true;musicStart()}
+  ["pointerdown","pointerup","click","touchend","keydown"].forEach(function(n){
+    document.addEventListener(n,kick,true);
   });
+  // aviso parpadeante en el menu hasta que la musica realmente suene
+  setInterval(function(){
+    var h=$("musicHint");
+    if(h)h.style.display=(musicOn&&!(actx&&actx.state==="running"))?"block":"none";
+  },400);
   document.addEventListener("visibilitychange",function(){
     if(document.hidden)musicStop();
     else if(unlocked)musicStart();
