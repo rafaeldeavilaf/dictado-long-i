@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Long i Words</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -196,7 +197,7 @@
     <div class="panel parent">
       <b>Para padres.</b> El niño toca LISTEN para escuchar la palabra y la arma tocando las letras en orden. En <b>Practice</b> la palabra se ve como modelo. En <b>Dictation test</b> no se ve, igual que en la prueba del martes 27 de octubre. Suban el volumen del teléfono. Si la voz no suena natural, toquen el botón <b>VOICE</b> para cambiarla.
     </div>
-    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.8 &middot; 2026-10-26 17:09</div>
   </section>
 
   <!-- GAME -->
@@ -219,7 +220,7 @@
     <div class="slots" id="slots"></div>
     <div class="tiles" id="tiles"></div>
     <button class="pbtn orange" id="btnNext" style="display:none">NEXT &#9654;</button>
-    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.8 &middot; 2026-10-26 17:09</div>
   </section>
 
   <!-- END -->
@@ -231,7 +232,7 @@
     <p class="sub" id="endNote"></p>
     <button class="pbtn orange" id="btnAgain">TRY AGAIN</button>
     <button class="pbtn blue" id="btnEndHome">HOME</button>
-    <div class="foot">Created by Rafael De Avila<br>v1.7 &middot; 2026-10-26 13:05</div>
+    <div class="foot">Created by Rafael De Avila<br>v1.8 &middot; 2026-10-26 17:09</div>
   </section>
 
 </div>
@@ -711,12 +712,65 @@
     });
   }
 
+  // ---------- AUTORREPARACION ----------
+  // Comprueba que lo que se ve en pantalla coincide con la palabra actual:
+  // mismos casilleros, mismas fichas y todas las letras que faltan por poner.
+  function consistent(){
+    if(!cur||finished)return true;
+    var sl=$("slots").children,tl=$("tiles").children;
+    if(sl.length!==cur.w.length||tl.length!==tiles.length)return false;
+    var avail={},i,c;
+    for(i=0;i<tiles.length;i++){
+      if(tl[i]!==tiles[i].el||tl[i].textContent!==tiles[i].ch)return false;
+      if(!tiles[i].used){c=tiles[i].ch.toLowerCase();avail[c]=(avail[c]||0)+1}
+    }
+    for(i=pos;i<cur.w.length;i++){
+      c=cur.w.charAt(i).toLowerCase();
+      if(!avail[c])return false;
+      avail[c]--;
+    }
+    return true;
+  }
+  // Reconstruye casilleros y fichas de la palabra actual conservando las letras ya puestas.
+  function rebuild(){
+    window.__heals=(window.__heals||0)+1;
+    var s=$("slots");s.innerHTML="";
+    for(var i=0;i<cur.w.length;i++){
+      var d=document.createElement("div");
+      d.className=(i<pos)?"slot filled":"slot";
+      if(i<pos)d.textContent=cur.w.charAt(i);
+      s.appendChild(d);
+    }
+    var pool=shuffle(EXTRA.split("").filter(function(c){return cur.w.toLowerCase().indexOf(c)<0}));
+    var all=shuffle(cur.w.split("").concat(pool.slice(0,3)));
+    tiles=all.map(function(ch){return {ch:ch,used:false}});
+    for(var k=0;k<pos;k++){
+      for(var q=0;q<tiles.length;q++){
+        if(!tiles[q].used&&tiles[q].ch===cur.w.charAt(k)){tiles[q].used=true;break}
+      }
+    }
+    renderTiles();
+  }
+  setInterval(function(){
+    if($("game").classList.contains("active")&&!finished&&cur&&!consistent())rebuild();
+  },500);
+
   function clearHints(){
     tiles.forEach(function(t){if(t.el)t.el.classList.remove("hint")});
   }
 
   function tap(i,el){
-    if(finished||tiles[i].used)return;
+    if(finished)return;
+    if(!consistent()){
+      // la pantalla no coincide con la palabra: se repara y se aplica el mismo toque
+      var ch=(el&&el.textContent)||"";
+      rebuild();
+      var j=-1;
+      for(var q=0;q<tiles.length;q++){if(!tiles[q].used&&tiles[q].ch===ch){j=q;break}}
+      if(j<0)return;
+      i=j;el=tiles[j].el;
+    }
+    if(tiles[i].used)return;
     var expected=cur.w.charAt(pos).toLowerCase();
     if(tiles[i].ch.toLowerCase()===expected){
       tiles[i].used=true;
